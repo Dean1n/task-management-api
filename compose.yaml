@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: task-manager-postgres
+    environment:
+      POSTGRES_DB: task_manager
+      POSTGRES_USER: task_user
+      POSTGRES_PASSWORD: task_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - task-manager-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U task_user -d task_manager
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: task-manager-api
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/task_manager
+      DB_USERNAME: task_user
+      DB_PASSWORD: task_password
+      JWT_SECRET: development-docker-secret-key-change-me-1234567890
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  task-manager-data:
